@@ -7,25 +7,22 @@
         placeholder="What needs to be done?"
         autocomplete="off"
         autofocus
+        v-model="input"
+        @keyup.enter="addTodo"
         >
     </header>
     <section class="main">
       <input id="toggle-all" class="toggle-all" type="checkbox">
       <label for="toggle-all">Mark all as complete</label>
       <ul class="todo-list">
-        <li>
+        <li
+          v-for="todo in todos"
+          :key="todo.text"
+        >
           <div class="view">
             <input class="toggle" type="checkbox">
-            <label >测试数据</label>
-            <button class="destroy"></button>
-          </div>
-          <input class="edit" type="text">
-        </li>
-        <li>
-          <div class="view">
-            <input class="toggle" type="checkbox">
-            <label >测试数据</label>
-            <button class="destroy"></button>
+            <label >{{ todo.text }}</label>
+            <button class="destroy" @click="remove(todo)"></button>
           </div>
           <input class="edit" type="text">
         </li>
@@ -57,10 +54,49 @@
 
 <script>
 import './assets/index.css'
+import { ref } from '@vue/reactivity'
+
+// 1. 添加待办事项
+const useAdd = todos => {
+  const input = ref('')
+  const addTodo = () => {
+    const text = input.value  && input.value.trim()
+    if (text.length === 0) return
+    // 把输入的内容添加到 todos 数组
+    todos.value.unshift({
+      text,
+      completed: false
+    })
+    input.value = ''
+  }
+  return {
+    input,
+    addTodo
+  }
+}
+
+// 2. 删除待办事项
+const useRemove = todos => {
+  const remove = todo => {
+    const index = todos.value.indexOf(todo)
+    todos.value.splice(index, 1)
+  }
+
+  return {
+    remove
+  }
+}
 
 export default {
   name: 'App',
-  components: {
+  setup () {
+    const todos = ref([])
+
+    return {
+      todos,
+      ...useAdd(todos),
+      ...useRemove(todos)
+    }
   }
 }
 </script>
