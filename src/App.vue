@@ -12,19 +12,28 @@
         >
     </header>
     <section class="main">
-      <input id="toggle-all" class="toggle-all" type="checkbox">
+      <input id="toggle-all" class="toggle-all" v-model="allDone" type="checkbox">
       <label for="toggle-all">Mark all as complete</label>
       <ul class="todo-list">
         <li
           v-for="todo in todos"
-          :key="todo.text"
+          :key="todo"
+          :class="{ editing: todo === editingTodo, completed: todo.completed }"
         >
           <div class="view">
-            <input class="toggle" type="checkbox">
-            <label >{{ todo.text }}</label>
+            <input class="toggle" type="checkbox" v-model="todo.completed">
+            <label @dblclick="editTodo(todo)" >{{ todo.text }}</label>
             <button class="destroy" @click="remove(todo)"></button>
           </div>
-          <input class="edit" type="text">
+          <input
+            class="edit"
+            type="text"
+            v-editing-focus="todo === editingTodo"
+            v-model="todo.text"
+            @keyup.enter="doneEdit(todo)"
+            @blur="doneEdit(todo)"
+            @keyup.esc="cancelEdit(todo)"
+          >
         </li>
       </ul>
     </section>
@@ -54,7 +63,7 @@
 
 <script>
 import './assets/index.css'
-import { ref } from '@vue/reactivity'
+import { computed, ref } from 'vue'
 
 // 1. 添加待办事项
 const useAdd = todos => {
@@ -87,15 +96,75 @@ const useRemove = todos => {
   }
 }
 
+// 3. 编辑待办事项
+const useEdit = remove => {
+  // 记录文本框初始内容
+  let beforeEditingText = ''
+  // 当前编辑状态 响应式
+  const editingTodo = ref(null)
+
+  // 编辑
+  const editTodo = todo => {
+    beforeEditingText = todo.text
+    editingTodo.value = todo
+  }
+  // 按下回车或者文本框失去焦点
+  const doneEdit = todo => {
+    if (!editingTodo.value) return
+    todo.text = todo.text.trim()
+    todo.text || remove(todo)
+    editingTodo.value = null
+  }
+  // 取消编辑
+  const cancelEdit = todo => {
+    editingTodo.value = null
+    todo.text = beforeEditingText
+  }
+  return {
+    editingTodo,
+    editTodo,
+    doneEdit,
+    cancelEdit
+  }
+}
+
+// 4. 切换待办项完成状态
+const useFilter = todos => {
+  const allDone = computed({
+    get () {
+      // 返回 !(未完成待办事项的个数)
+      return !todos.value.filter(todo => !todo.completed).length
+    },
+    set (value) {
+      todos.value.forEach(todo => {
+        todo.completed = value
+      })
+    }
+  })
+
+  return {
+    allDone
+  }
+}
+
 export default {
   name: 'App',
   setup () {
     const todos = ref([])
 
+    const { remove } = useRemove(todos)
+
     return {
       todos,
+      remove,
       ...useAdd(todos),
-      ...useRemove(todos)
+      ...useEdit(remove),
+      ...useFilter(todos)
+    }
+  },
+  directives: {
+    editingFocus: (el, binding) => {
+      binding.value && el.focus()
     }
   }
 }
