@@ -11,12 +11,12 @@
         @keyup.enter="addTodo"
         >
     </header>
-    <section class="main">
+    <section class="main" v-show="count">
       <input id="toggle-all" class="toggle-all" v-model="allDone" type="checkbox">
       <label for="toggle-all">Mark all as complete</label>
       <ul class="todo-list">
         <li
-          v-for="todo in todos"
+          v-for="todo in filteredTodos"
           :key="todo"
           :class="{ editing: todo === editingTodo, completed: todo.completed }"
         >
@@ -37,16 +37,16 @@
         </li>
       </ul>
     </section>
-    <footer class="footer">
+    <footer class="footer" v-show="count">
       <span class="todo-count">
-        <strong>1</strong> item left
+        <strong>{{ remainingCount }}</strong> {{ remainingCount > 1 ? 'items' : 'item' }} left
       </span>
       <ul class="filters">
         <li><a href="#/all">All</a></li>
         <li><a href="#/active">Active</a></li>
         <li><a href="#/completed">Completed</a></li>
       </ul>
-      <button class="clear-completed">
+      <button class="clear-completed" @click="removeCompleted" v-show="count > remainingCount">
         Clear completed
       </button>
     </footer>
@@ -63,7 +63,10 @@
 
 <script>
 import './assets/index.css'
-import { computed, ref } from 'vue'
+import useLocalStorage from './utils/useLocalStorage'
+import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue'
+
+const storage = useLocalStorage()
 
 // 1. 添加待办事项
 const useAdd = todos => {
@@ -90,9 +93,12 @@ const useRemove = todos => {
     const index = todos.value.indexOf(todo)
     todos.value.splice(index, 1)
   }
-
+  const removeCompleted = () => {
+    todos.value = todos.value.filter(todo => !todo.completed)
+  }
   return {
-    remove
+    remove,
+    removeCompleted
   }
 }
 
@@ -142,21 +148,64 @@ const useFilter = todos => {
     }
   })
 
-  return {
-    allDone
+  const filter = {
+    all: list => list,
+    active: list => list.filter(todo => !todo.completed),
+    completed: list => list.filter(todo => todo.completed)
   }
+  const type = ref('all')
+  const filteredTodos = computed(() => filter[type.value](todos.value))
+  const remainingCount = computed(() => filter.active(todos.value).length)
+  const count = computed(() => todos.value.length)
+
+  const onHashChange = () => {
+    const hash = window.location.hash.replace('#/', '')
+    if (filter[hash]) {
+      type.value =hash
+    } else {
+      type.value = 'all'
+      window.location.hash = ''
+    }    
+  }
+
+  onMounted(() => {
+    window.addEventListener('hashchange', onHashChange)
+    onHashChange()
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('hashchange', onHashChange)
+  })
+
+  return {
+    allDone,
+    count,
+    filteredTodos,
+    remainingCount
+  }
+}
+
+// 5. 存储待办事项
+const useStorage = () => {
+  const KEY = 'TODOKEYS'
+  const todos = ref(storage.getItem(KEY) || [])
+  watchEffect(() => {
+    storage.serItem(KEY, todos.value)
+  })
+  return todos
 }
 
 export default {
   name: 'App',
   setup () {
-    const todos = ref([])
+    const todos = useStorage()
 
-    const { remove } = useRemove(todos)
+    const { remove, removeCompleted } = useRemove(todos)
 
     return {
       todos,
       remove,
+      removeCompleted,
       ...useAdd(todos),
       ...useEdit(remove),
       ...useFilter(todos)
