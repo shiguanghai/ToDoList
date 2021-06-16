@@ -5,7 +5,11 @@
       <input id="toggle-all" class="toggle-all" v-model="allDone" type="checkbox">
       <label for="toggle-all">Mark all as complete</label>
       <ul class="todo-list">
-        <TodoItem />
+        <TodoItem
+          data-testid="todo-item"
+          v-for="todo in todos"
+          :key="todo.id"
+        />
       </ul>
     </section>
     <TodoFooter />
@@ -30,6 +34,11 @@ export default {
     TodoHeader,
     TodoFooter,
     TodoItem
+  },
+  data () {
+    return {
+      todos: [] // 任务列表
+    }
   }
 }
 </script>

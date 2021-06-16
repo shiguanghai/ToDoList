@@ -70,14 +70,14 @@ const storage = useLocalStorage()
 
 // 1. 添加待办事项
 const useAdd = todos => {
-  const input = ref('')
+  const input = ref('') // 文本框默认为空 通过ref创建的响应式对象通过value获取值
   const addTodo = () => {
-    const text = input.value  && input.value.trim()
+    const text = input.value  && input.value.trim() // 去除前后空格
     if (text.length === 0) return
     // 把输入的内容添加到 todos 数组
-    todos.value.unshift({
-      text,
-      completed: false
+    todos.value.unshift({ // 把后输入的项显示在最前面
+      text, // 内容
+      completed: false // 是否完成
     })
     input.value = ''
   }
@@ -198,6 +198,7 @@ const useStorage = () => {
 export default {
   name: 'App',
   setup () {
+    // const todos = ref('') // 响应式对象
     const todos = useStorage()
 
     const { remove, removeCompleted } = useRemove(todos)
