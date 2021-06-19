@@ -1,28 +1,31 @@
 <template>
-  <li
-    v-for="todo in filteredTodos"
-    :key="todo"
-    :class="{ editing: todo === editingTodo, completed: todo.completed }"
-  >
+  <li class="completed">
     <div class="view">
-      <input class="toggle" type="checkbox" v-model="todo.completed">
-      <label @dblclick="editTodo(todo)" >{{ todo.text }}</label>
-      <button class="destroy" @click="remove(todo)"></button>
+      <input 
+        data-testid="todo-done"
+        class="toggle"
+        type="checkbox"
+        v-model="todo.done"
+      >
+      <label data-testid="todo-text">{{ todo.text }}</label>
+      <button class="destroy"></button>
     </div>
     <input
       class="edit"
       type="text"
-      v-editing-focus="todo === editingTodo"
-      v-model="todo.text"
-      @keyup.enter="doneEdit(todo)"
-      @blur="doneEdit(todo)"
-      @keyup.esc="cancelEdit(todo)"
-    >
+      value="Create a TodoMVC template"
+    />
   </li>
 </template>
 
 <script>
 export default {
-  name: 'TodoItem'
+  name: 'TodoItem',
+  props: {
+    todo: {
+      type: Object,
+      require: true
+    }
+  }
 }
 </script>
